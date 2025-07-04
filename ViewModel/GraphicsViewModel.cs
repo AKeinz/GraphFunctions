@@ -43,19 +43,39 @@ namespace ViewModel
 
         }
 
-        public ObservableCollection<DataPoint> Points { get; } = new ObservableCollection<DataPoint>();
+        public ObservableCollection<DataPoint> PointsFirstBranch { get; } = new ObservableCollection<DataPoint>();
+        public ObservableCollection<DataPoint> PointsSecondBranch { get; } = new ObservableCollection<DataPoint>();
 
         public void UpdateGraphData()
         {
-            Points.Clear();
+            PointsFirstBranch.Clear();
+            PointsSecondBranch.Clear();
             IFunction func = CurrentGraph.SelectedFunction;
             double step = 0.1;
 
             try
             {
                 List<DataPoint> result = RunWithTimeout(() => CalculatePoints(func, step), 2500000);
-                result.ForEach((p)  => {Points.Add(p); });
-            }
+                if (func.Type.Contains("/x"))
+                {
+                    int index = 0;
+                    foreach (DataPoint point in result)
+                    {
+                        if (point.X > -0.1 || Math.Abs(point.Y) < double.Epsilon) { index = result.IndexOf(point); break; }
+                        PointsFirstBranch.Add(point);
+                    }
+                    for (int i = index; i < result.Count-2; i++)
+                    {
+                        if (result[i].X < 0.1 || Math.Abs(result[i].Y) < double.Epsilon) { continue; }
+                        PointsSecondBranch.Add(result[i]);
+                    }
+                }
+                else
+                {
+                    result.ForEach((p) => { PointsFirstBranch.Add(p); });
+                }
+
+           }
             catch (TimeoutException e)
             {
                 MessageNeeded?.Invoke(e.Message);
@@ -74,7 +94,7 @@ namespace ViewModel
             List<DataPoint> points = new List<DataPoint>();
             
             for (double x = func.MinLimit; x <= func.MaxLimit; x += step)
-            {
+            { 
                 double y = 0;
                 try
                 {

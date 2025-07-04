@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.ExceptionServices;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using ViewModel;
@@ -36,10 +37,20 @@ namespace GraphicsForm
             chart1.Titles.Add("График функции");
             chart1.ChartAreas[0].AxisX.MajorGrid.LineColor = Color.LightGray;
             chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
-            chart1.ChartAreas[0].AxisX.Interval = 1;
+
+
+            chart1.ChartAreas[0].AxisY.IntervalAutoMode = IntervalAutoMode.VariableCount;
+            chart1.ChartAreas[0].AxisX.IntervalAutoMode = IntervalAutoMode.VariableCount;
 
             chart1.Series[0].ChartType = SeriesChartType.Line;
             chart1.Series[0].IsVisibleInLegend = false;
+            chart1.Series[0].Color = Color.Green;
+
+            chart1.Series.Add(new Series());
+            chart1.Series[1].ChartType = SeriesChartType.Line;
+            chart1.Series[1].IsVisibleInLegend = false;
+
+            chart1.Series[1].Color = Color.Orange;
 
             chart1.ChartAreas[0].AxisX.Crossing = 0;
             chart1.ChartAreas[0].AxisY.Crossing = 0;
@@ -47,7 +58,7 @@ namespace GraphicsForm
             chart1.ChartAreas[0].AxisX.ArrowStyle = AxisArrowStyle.Triangle;
             chart1.ChartAreas[0].AxisY.ArrowStyle = AxisArrowStyle.Triangle;
 
-            chart1.MouseWheel += Chart_MouseWheel;
+            //chart1.MouseWheel += Chart_MouseWheel;
             IFunction function = logic.CurrentGraph.SelectedFunction;
             SelectedFunctionLabel.DataBindings.Add(
                 new Binding("Text", logic.CurrentGraph, "SelectedFunction.Equation", true,
@@ -60,7 +71,8 @@ namespace GraphicsForm
                 true, DataSourceUpdateMode.OnPropertyChanged));
 
 
-            logic.Points.CollectionChanged += (s, e) => UpdateChart();
+            logic.PointsFirstBranch.CollectionChanged += (s, e) => UpdateChart();
+            logic.PointsSecondBranch.CollectionChanged += (s, e) => UpdateChartSecondBranch();
 
             textBoxes.Add(ATextBox);
             textBoxes.Add(BTextBox);
@@ -130,26 +142,40 @@ namespace GraphicsForm
             }
         }
 
-        private void Chart_MouseWheel(object sender, MouseEventArgs e)
+        /*private void Chart_MouseWheel(object sender, MouseEventArgs e)
         {
             var chart = (Chart)sender;
             var area = chart.ChartAreas[0];
-            int zoomFactor = e.Delta > 0 ? -1 : 1;
+            double zoomFactor = e.Delta > 0 ? 2 : 0.5;
             double currentMin = area.AxisY.ScaleView.ViewMinimum;
             double currentMax = area.AxisY.ScaleView.ViewMaximum;
-            chart1.ChartAreas[0].AxisX.Interval += zoomFactor;
-            chart1.ChartAreas[0].AxisY.Interval += zoomFactor;
-        }
+            chart1.ChartAreas[0].AxisX.Interval *= zoomFactor;
+            chart1.ChartAreas[0].AxisY.Interval *= zoomFactor;
+        }*/
 
         private void UpdateChart()
         {
             chart1.Series[0].Points.Clear();
 
-            foreach (var point in logic.Points)
+
+            foreach (var point in logic.PointsFirstBranch)
             {
                 chart1.Series[0].Points.AddXY(point.X, point.Y);
             }
+
         }
+
+        private void UpdateChartSecondBranch()
+        {
+            chart1.Series[1].Points.Clear();
+
+
+            foreach (var point in logic.PointsSecondBranch)
+            {
+                chart1.Series[1].Points.AddXY(point.X, point.Y);
+            }
+        }
+
 
         private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {

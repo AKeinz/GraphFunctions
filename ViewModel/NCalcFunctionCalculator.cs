@@ -47,6 +47,7 @@ namespace ViewModel
                 {
                     throw new OverflowException();
                 }
+
                 return Convert.ToDouble(expr.Evaluate());
             }
             catch

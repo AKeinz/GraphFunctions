@@ -259,7 +259,7 @@
             this.MinimumSize = new System.Drawing.Size(686, 432);
             this.Name = "AddFunctionForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Добавление графика функции";
+            this.Text = "Выбор функции";
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
             this.splitContainer1.Panel2.PerformLayout();

@@ -135,5 +135,26 @@ namespace UnitTestProject
             double exp = Math.Log(Math.Cos(x));
             Assert.AreEqual(exp, result);
         }
+
+        [TestMethod]
+        public void CalculateYWithExpPoint01()
+        {
+            NCalcFunctionCalculator calc = new NCalcFunctionCalculator();
+
+            double result = calc.Calculate("y = Exp(x)", 0);
+            double exp = Math.Exp(0);
+            Assert.AreEqual(exp, result);
+        }
+
+        [TestMethod]
+        public void CalculateYWithDivisionOnX()
+        {
+            double x = 5;
+            NCalcFunctionCalculator calc = new NCalcFunctionCalculator();
+
+            double result = calc.Calculate("y = 1/x", x);
+            double exp = 1 / x;
+            Assert.AreEqual(exp, result);
+        }
     }
 }
