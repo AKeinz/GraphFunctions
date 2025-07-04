@@ -1,0 +1,225 @@
+﻿using Model;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+using ViewModel;
+
+
+namespace GraphicsForm
+{
+    public partial class GraphicsForm : Form
+    {
+        GraphicsViewModel logic = new GraphicsViewModel(new NCalcFunctionCalculator());
+        private List<TextBox> textBoxes = new List<TextBox>();
+
+        public GraphicsForm()
+        {
+            InitializeComponent();
+
+            toolTip1.SetToolTip(HintLabel, "Для создания графика функции нажмите на \"Выбрать функцию\"\n\n" +
+                "Для перемещения между коэффициентами и пределами интервала построения\n используйте клавиши вверх-вниз.\n\n" +
+                "Для увеличения-уменьшения значения параметра\n используйте клавиши вправо-влево\n\n" +
+                "При наведении на график отображаются\n координаты точки во всплывающем окне");
+           
+
+            AddButton.Click += (sender, e) =>
+            {
+                logic.DisplayAddFunctionCommand.Execute(sender);
+            };
+            
+            
+
+            chart1.ChartAreas[0].AxisX.Title = "Ось X";
+            chart1.ChartAreas[0].AxisY.Title = "Ось Y";
+            chart1.Titles.Add("График функции");
+            chart1.ChartAreas[0].AxisX.MajorGrid.LineColor = Color.LightGray;
+            chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+            chart1.ChartAreas[0].AxisX.Interval = 1;
+
+            chart1.Series[0].ChartType = SeriesChartType.Line;
+            chart1.Series[0].IsVisibleInLegend = false;
+
+            chart1.ChartAreas[0].AxisX.Crossing = 0;
+            chart1.ChartAreas[0].AxisY.Crossing = 0;
+
+            chart1.ChartAreas[0].AxisX.ArrowStyle = AxisArrowStyle.Triangle;
+            chart1.ChartAreas[0].AxisY.ArrowStyle = AxisArrowStyle.Triangle;
+
+            chart1.MouseWheel += Chart_MouseWheel;
+            IFunction function = logic.CurrentGraph.SelectedFunction;
+            SelectedFunctionLabel.DataBindings.Add(
+                new Binding("Text", logic.CurrentGraph, "SelectedFunction.Equation", true,
+                    DataSourceUpdateMode.OnPropertyChanged)
+                );
+
+            MinLimitTextBox.DataBindings.Add(new Binding("Text", logic.CurrentGraph, "SelectedFunction.MinLimit",
+                true, DataSourceUpdateMode.OnPropertyChanged));
+            MaxLimitTextBox.DataBindings.Add(new Binding("Text", logic.CurrentGraph, "SelectedFunction.MaxLimit",
+                true, DataSourceUpdateMode.OnPropertyChanged));
+
+
+            logic.Points.CollectionChanged += (s, e) => UpdateChart();
+
+            textBoxes.Add(ATextBox);
+            textBoxes.Add(BTextBox);
+            textBoxes.Add(CTextBox);
+            textBoxes.Add(MinLimitTextBox);
+            textBoxes.Add(MaxLimitTextBox);
+
+            foreach (var tb in textBoxes)
+            {
+                tb.KeyDown += TextBox_KeyDown;
+            }
+
+            chart1.GetToolTipText += (sender, e) =>
+            {
+                if (e.HitTestResult.ChartElementType == ChartElementType.DataPoint)
+                {
+                    var point = chart1.Series[0].Points[e.HitTestResult.PointIndex];
+                    e.Text = $"X: {point.XValue:F2}\nY: {point.YValues[0]:F2}";
+                }
+            };
+
+            logic.MessageNeeded += ShowMesage;
+
+        }
+
+
+        private void AddButton_Click(object sender, EventArgs e)
+        {
+            AddFunctionForm addFunctionForm = new AddFunctionForm();
+            addFunctionForm.ShowDialog();
+
+            ALabel.Visible = false;
+            BLabel.Visible = false;
+            ATextBox.Visible = false;
+            BTextBox.Visible = false;
+            CLabel.Visible = false;
+            CTextBox.Visible = false;
+            ATextBox.DataBindings.Clear();
+            BTextBox.DataBindings.Clear();
+            CTextBox.DataBindings.Clear();
+
+            if (AvailableFunctions.GetAvailableFunctionsDict().ContainsKey(logic.CurrentGraph.SelectedFunction.Type))
+            {
+                int countOfCoefs = AvailableFunctions.GetAvailableFunctionsDict()[logic.CurrentGraph.SelectedFunction.Type];
+
+                if (countOfCoefs >= 1)
+                {
+                    ALabel.Visible = true;
+                    ATextBox.Visible = true;
+                    ATextBox.DataBindings.Add(new Binding("Text", logic.CurrentGraph, "SelectedFunction.ACoef",
+                    true, DataSourceUpdateMode.OnPropertyChanged));
+                }
+                if (countOfCoefs >= 2)
+                {
+                    BLabel.Visible = true;
+                    BTextBox.Visible = true;
+                    BTextBox.DataBindings.Add(new Binding("Text", logic.CurrentGraph, "SelectedFunction.BCoef",
+                    true, DataSourceUpdateMode.OnPropertyChanged));
+                }
+                if (countOfCoefs >= 3)
+                {
+                    CLabel.Visible = true;
+                    CTextBox.Visible = true;
+                    CTextBox.DataBindings.Add(new Binding("Text", logic.CurrentGraph, "SelectedFunction.CCoef",
+                    true, DataSourceUpdateMode.OnPropertyChanged));
+                }
+            }
+        }
+
+        private void Chart_MouseWheel(object sender, MouseEventArgs e)
+        {
+            var chart = (Chart)sender;
+            var area = chart.ChartAreas[0];
+            int zoomFactor = e.Delta > 0 ? -1 : 1;
+            double currentMin = area.AxisY.ScaleView.ViewMinimum;
+            double currentMax = area.AxisY.ScaleView.ViewMaximum;
+            chart1.ChartAreas[0].AxisX.Interval += zoomFactor;
+            chart1.ChartAreas[0].AxisY.Interval += zoomFactor;
+        }
+
+        private void UpdateChart()
+        {
+            chart1.Series[0].Points.Clear();
+
+            foreach (var point in logic.Points)
+            {
+                chart1.Series[0].Points.AddXY(point.X, point.Y);
+            }
+        }
+
+        private void TextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            var currentTextBox = sender as TextBox;
+            int currentIndex = textBoxes.IndexOf(currentTextBox);
+
+            switch (e.KeyCode)
+            {
+                case Keys.Down:
+                    while (true)
+                    {
+                        if (currentIndex == textBoxes.Count - 1)
+                        {
+                            currentIndex = -1;
+                        }
+                        if (textBoxes[currentIndex+1].Visible)
+                        {
+                            textBoxes[currentIndex + 1].Focus();
+                            e.Handled = true;
+                            break;
+                        }
+                        else { currentIndex++; }
+                    }
+                    break;
+
+                case Keys.Up:
+                    while (true)
+                    {
+                        if (currentIndex == 0)
+                        {
+                            currentIndex = textBoxes.Count;
+                        }
+                        if (textBoxes[currentIndex - 1].Visible)
+                        {
+                            textBoxes[currentIndex - 1].Focus();
+                            e.Handled = true;
+                            break;
+                        }
+                        else { currentIndex--; }
+                    }
+                    break;
+
+                case Keys.Right:
+                    //logic.IncreaseCommand.Execute();
+                    double.TryParse(textBoxes[currentIndex].Text, out double result);
+                    textBoxes[currentIndex].Text = (result +1).ToString();
+                    break;
+
+                case Keys.Left:
+                    //logic.DeacreaseCommand.Execute();
+                    double.TryParse(textBoxes[currentIndex].Text, out double result1);
+                    textBoxes[currentIndex].Text = (result1 - 1).ToString();
+                    break;
+
+            }
+        }
+
+        private void chart1_MouseMove(object sender, MouseEventArgs e)
+        {
+            var area = chart1.ChartAreas[0];
+
+            double x = area.AxisX.PixelPositionToValue(e.Location.X);
+            double y = area.AxisY.PixelPositionToValue(e.Location.Y);
+
+            StatusLabel.Text = $"Текущие координаты\nX: {x:F2}, Y: {y:F2}";
+        }
+
+        private void ShowMesage(string message)
+        {
+            MessageBox.Show(message);
+        }
+    }
+}
