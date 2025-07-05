@@ -13,8 +13,6 @@ namespace GraphicsForm
     {
         GraphicsViewModel logic;
         private List<TextBox> textBoxes = new List<TextBox>();
-        private const string CoordinatesFormat = "X: {0:F2}, Y: {1:F2}";
-        private const string TooltipFormat = "X: {0:F2}\nY: {1:F2}";
 
 
         public GraphicsForm()
