@@ -29,13 +29,14 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.StatusLabel = new System.Windows.Forms.Label();
             this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            this.ExportButton = new System.Windows.Forms.Button();
             this.AddButton = new System.Windows.Forms.Button();
             this.HintLabel = new System.Windows.Forms.Label();
             this.CTextBox = new System.Windows.Forms.TextBox();
@@ -75,6 +76,7 @@
             // 
             // splitContainer1.Panel2
             // 
+            this.splitContainer1.Panel2.Controls.Add(this.ExportButton);
             this.splitContainer1.Panel2.Controls.Add(this.AddButton);
             this.splitContainer1.Panel2.Controls.Add(this.HintLabel);
             this.splitContainer1.Panel2.Controls.Add(this.CTextBox);
@@ -105,25 +107,34 @@
             // 
             // chart1
             // 
-            chartArea2.Name = "ChartArea1";
-            this.chart1.ChartAreas.Add(chartArea2);
+            chartArea1.Name = "ChartArea1";
+            this.chart1.ChartAreas.Add(chartArea1);
             this.chart1.Dock = System.Windows.Forms.DockStyle.Fill;
-            legend2.Name = "Legend1";
-            this.chart1.Legends.Add(legend2);
+            legend1.Name = "Legend1";
+            this.chart1.Legends.Add(legend1);
             this.chart1.Location = new System.Drawing.Point(0, 0);
             this.chart1.Name = "chart1";
-            series2.ChartArea = "ChartArea1";
-            series2.Legend = "Legend1";
-            series2.Name = "Series1";
-            this.chart1.Series.Add(series2);
+            series1.ChartArea = "ChartArea1";
+            series1.Legend = "Legend1";
+            series1.Name = "Series1";
+            this.chart1.Series.Add(series1);
             this.chart1.Size = new System.Drawing.Size(904, 594);
             this.chart1.TabIndex = 0;
             this.chart1.Text = "chart1";
             this.chart1.MouseMove += new System.Windows.Forms.MouseEventHandler(this.chart1_MouseMove);
             // 
+            // ExportButton
+            // 
+            this.ExportButton.Location = new System.Drawing.Point(78, 523);
+            this.ExportButton.Name = "ExportButton";
+            this.ExportButton.Size = new System.Drawing.Size(201, 59);
+            this.ExportButton.TabIndex = 17;
+            this.ExportButton.Text = "Экспортировать в таблицу Excel";
+            this.ExportButton.UseVisualStyleBackColor = true;
+            // 
             // AddButton
             // 
-            this.AddButton.Location = new System.Drawing.Point(82, 527);
+            this.AddButton.Location = new System.Drawing.Point(78, 462);
             this.AddButton.Name = "AddButton";
             this.AddButton.Size = new System.Drawing.Size(201, 55);
             this.AddButton.TabIndex = 16;
@@ -310,7 +321,7 @@
         private System.Windows.Forms.Label StatusLabel;
         private System.Windows.Forms.ToolTip toolTip1;
         private System.Windows.Forms.Label HintLabel;
-
+        private System.Windows.Forms.Button ExportButton;
     }
 }
 

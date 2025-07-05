@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Runtime.ExceptionServices;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using ViewModel;
@@ -12,54 +11,70 @@ namespace GraphicsForm
 {
     public partial class GraphicsForm : Form
     {
-        GraphicsViewModel logic = new GraphicsViewModel(new NCalcFunctionCalculator());
+        GraphicsViewModel logic;
         private List<TextBox> textBoxes = new List<TextBox>();
+        private const string CoordinatesFormat = "X: {0:F2}, Y: {1:F2}";
+        private const string TooltipFormat = "X: {0:F2}\nY: {1:F2}";
+
 
         public GraphicsForm()
         {
             InitializeComponent();
 
+            logic = new GraphicsViewModel(new NCalcFunctionCalculator(), new ExportDataToExcelByClosedXML());
+
+            InitializeTooltips();
+            InitializeChart();
+            SetupDataBindings();
+            InitializeEventHandlers();
+        }
+
+        private void InitializeTooltips()
+        {
             toolTip1.SetToolTip(HintLabel, "Для создания графика функции нажмите на \"Выбрать функцию\"\n\n" +
                 "Для перемещения между коэффициентами и пределами интервала построения\n используйте клавиши вверх-вниз.\n\n" +
                 "Для увеличения-уменьшения значения параметра\n используйте клавиши вправо-влево\n\n" +
-                "При наведении на график отображаются\n координаты точки во всплывающем окне");
-           
+                "При наведении на график отображаются\n координаты точки во всплывающем окне\n\n" +
+                "При экспорте создается таблица Excel со значениями текущей функции в папке Documents\\MyExports");
+        }
 
-            AddButton.Click += (sender, e) =>
-            {
-                logic.DisplayAddFunctionCommand.Execute(sender);
-            };
-            
-            
-
-            chart1.ChartAreas[0].AxisX.Title = "Ось X";
-            chart1.ChartAreas[0].AxisY.Title = "Ось Y";
+        private void InitializeChart()
+        {
+            var chartArea = chart1.ChartAreas[0];
+            chartArea.AxisX.Title = "Ось X";
+            chartArea.AxisY.Title = "Ось Y";
             chart1.Titles.Add("График функции");
-            chart1.ChartAreas[0].AxisX.MajorGrid.LineColor = Color.LightGray;
-            chart1.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
 
+            ConfigureChartAxis(chartArea.AxisX);
+            ConfigureChartAxis(chartArea.AxisY);
 
-            chart1.ChartAreas[0].AxisY.IntervalAutoMode = IntervalAutoMode.VariableCount;
-            chart1.ChartAreas[0].AxisX.IntervalAutoMode = IntervalAutoMode.VariableCount;
+            InitializeChartSeries();
+        }
 
+        private void ConfigureChartAxis(Axis axis)
+        {
+            axis.MajorGrid.LineColor = Color.LightGray;
+            axis.IntervalAutoMode = IntervalAutoMode.FixedCount;
+            axis.Crossing = 0;
+            axis.ArrowStyle = AxisArrowStyle.Triangle;
+        }
+
+        private void InitializeChartSeries()
+        {
             chart1.Series[0].ChartType = SeriesChartType.Line;
             chart1.Series[0].IsVisibleInLegend = false;
             chart1.Series[0].Color = Color.Green;
 
-            chart1.Series.Add(new Series());
-            chart1.Series[1].ChartType = SeriesChartType.Line;
-            chart1.Series[1].IsVisibleInLegend = false;
+            chart1.Series.Add(new Series
+            {
+                ChartType = SeriesChartType.Line,
+                IsVisibleInLegend = false,
+                Color = Color.Orange
+            });
+        }
 
-            chart1.Series[1].Color = Color.Orange;
-
-            chart1.ChartAreas[0].AxisX.Crossing = 0;
-            chart1.ChartAreas[0].AxisY.Crossing = 0;
-
-            chart1.ChartAreas[0].AxisX.ArrowStyle = AxisArrowStyle.Triangle;
-            chart1.ChartAreas[0].AxisY.ArrowStyle = AxisArrowStyle.Triangle;
-
-            //chart1.MouseWheel += Chart_MouseWheel;
-            IFunction function = logic.CurrentGraph.SelectedFunction;
+        private void SetupDataBindings()
+        {
             SelectedFunctionLabel.DataBindings.Add(
                 new Binding("Text", logic.CurrentGraph, "SelectedFunction.Equation", true,
                     DataSourceUpdateMode.OnPropertyChanged)
@@ -69,21 +84,20 @@ namespace GraphicsForm
                 true, DataSourceUpdateMode.OnPropertyChanged));
             MaxLimitTextBox.DataBindings.Add(new Binding("Text", logic.CurrentGraph, "SelectedFunction.MaxLimit",
                 true, DataSourceUpdateMode.OnPropertyChanged));
+        }
 
+        private void InitializeEventHandlers()
+        {
+            ExportButton.Click += (sender, e) =>
+            {
+                logic.ExportToExcelCommand.Execute(sender);
+            };
 
             logic.PointsFirstBranch.CollectionChanged += (s, e) => UpdateChart();
             logic.PointsSecondBranch.CollectionChanged += (s, e) => UpdateChartSecondBranch();
 
-            textBoxes.Add(ATextBox);
-            textBoxes.Add(BTextBox);
-            textBoxes.Add(CTextBox);
-            textBoxes.Add(MinLimitTextBox);
-            textBoxes.Add(MaxLimitTextBox);
+            InitializeTextBoxes();
 
-            foreach (var tb in textBoxes)
-            {
-                tb.KeyDown += TextBox_KeyDown;
-            }
 
             chart1.GetToolTipText += (sender, e) =>
             {
@@ -95,7 +109,12 @@ namespace GraphicsForm
             };
 
             logic.MessageNeeded += ShowMesage;
+        }
 
+        private void InitializeTextBoxes()
+        {
+            textBoxes.AddRange(new[] { ATextBox, BTextBox, CTextBox, MinLimitTextBox, MaxLimitTextBox });
+            textBoxes.ForEach(tb => tb.KeyDown += TextBox_KeyDown);
         }
 
 
@@ -104,15 +123,7 @@ namespace GraphicsForm
             AddFunctionForm addFunctionForm = new AddFunctionForm();
             addFunctionForm.ShowDialog();
 
-            ALabel.Visible = false;
-            BLabel.Visible = false;
-            ATextBox.Visible = false;
-            BTextBox.Visible = false;
-            CLabel.Visible = false;
-            CTextBox.Visible = false;
-            ATextBox.DataBindings.Clear();
-            BTextBox.DataBindings.Clear();
-            CTextBox.DataBindings.Clear();
+            ResetCoefficientControls();
 
             if (AvailableFunctions.GetAvailableFunctionsDict().ContainsKey(logic.CurrentGraph.SelectedFunction.Type))
             {
@@ -142,16 +153,16 @@ namespace GraphicsForm
             }
         }
 
-        /*private void Chart_MouseWheel(object sender, MouseEventArgs e)
+        private void ResetCoefficientControls()
         {
-            var chart = (Chart)sender;
-            var area = chart.ChartAreas[0];
-            double zoomFactor = e.Delta > 0 ? 2 : 0.5;
-            double currentMin = area.AxisY.ScaleView.ViewMinimum;
-            double currentMax = area.AxisY.ScaleView.ViewMaximum;
-            chart1.ChartAreas[0].AxisX.Interval *= zoomFactor;
-            chart1.ChartAreas[0].AxisY.Interval *= zoomFactor;
-        }*/
+            ALabel.Visible = BLabel.Visible = CLabel.Visible = false;
+            ATextBox.Visible = BTextBox.Visible = CTextBox.Visible = false;
+
+            ATextBox.DataBindings.Clear();
+            BTextBox.DataBindings.Clear();
+            CTextBox.DataBindings.Clear();
+        }
+
 
         private void UpdateChart()
         {
@@ -162,6 +173,9 @@ namespace GraphicsForm
             {
                 chart1.Series[0].Points.AddXY(point.X, point.Y);
             }
+
+            chart1.ChartAreas[0].AxisX.RoundAxisValues();
+
 
         }
 
@@ -174,6 +188,8 @@ namespace GraphicsForm
             {
                 chart1.Series[1].Points.AddXY(point.X, point.Y);
             }
+
+            chart1.ChartAreas[0].AxisX.RoundAxisValues();
         }
 
 
@@ -247,5 +263,6 @@ namespace GraphicsForm
         {
             MessageBox.Show(message);
         }
+        
     }
 }

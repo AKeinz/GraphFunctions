@@ -1,12 +1,6 @@
 ﻿using Model;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using ViewModel;
 
@@ -15,38 +9,50 @@ namespace GraphicsForm
     public partial class AddFunctionForm : Form
     {
         private List<TextBox> textBoxes = new List<TextBox>();
+        private AddFunctionViewModel logic;
         public AddFunctionForm()
         {
-            AddFunctionViewModel logic = new AddFunctionViewModel();
             InitializeComponent();
-            foreach (string func in logic.AvailableFunctionsDict.Keys)
-            {
-                AvailableFunctionsListView.Items.Add(func);
-            }
-            AddButton.Click += (sender, e) =>
-            {
-                if (AvailableFunctionsListView.SelectedIndices.Count > 0) {
-                    logic.AddFunctionCommand.Execute(AvailableFunctionsListView.SelectedItems[0].Text);
-                    Close(); }
-            };
+            logic = new AddFunctionViewModel();
+            InitializeBindings();
+            SetupEventHandlers();
+            LoadAvailableFunctions();
+        }
 
-            logic.MessageNeeded += ShowMessage;
-
+        private void InitializeBindings()
+        {
             ATextBox.DataBindings.Add(new Binding("Text", logic, "ACoef"));
             BTextBox.DataBindings.Add(new Binding("Text", logic, "BCoef"));
             CTextBox.DataBindings.Add(new Binding("Text", logic, "CCoef"));
             MinLimitTextBox.DataBindings.Add(new Binding("Text", logic, "MinLimit"));
             MaxLimitTextBox.DataBindings.Add(new Binding("Text", logic, "MaxLimit"));
 
-            textBoxes.Add(ATextBox);
-            textBoxes.Add(BTextBox);
-            textBoxes.Add(CTextBox);
-            textBoxes.Add(MinLimitTextBox);
-            textBoxes.Add(MaxLimitTextBox);
+            textBoxes.AddRange(new[] { ATextBox, BTextBox, CTextBox, MinLimitTextBox, MaxLimitTextBox });
+        }
+
+        private void SetupEventHandlers()
+        {
+            AddButton.Click += (sender, e) =>
+            {
+                if (AvailableFunctionsListView.SelectedIndices.Count > 0)
+                {
+                    logic.AddFunctionCommand.Execute(AvailableFunctionsListView.SelectedItems[0].Text);
+                    Close();
+                }
+            };
+            logic.MessageNeeded += ShowMessage;
 
             foreach (var tb in textBoxes)
             {
                 tb.KeyDown += TextBox_KeyDown;
+            }
+        }
+
+        private void LoadAvailableFunctions()
+        {
+            foreach (string func in logic.AvailableFunctionsDict.Keys)
+            {
+                AvailableFunctionsListView.Items.Add(func);
             }
         }
 
@@ -128,13 +134,11 @@ namespace GraphicsForm
                     break;
 
                 case Keys.Right:
-                    //logic.IncreaseCommand.Execute();
                     double.TryParse(textBoxes[currentIndex].Text, out double result);
                     textBoxes[currentIndex].Text = (result + 1).ToString();
                     break;
 
                 case Keys.Left:
-                    //logic.DeacreaseCommand.Execute();
                     double.TryParse(textBoxes[currentIndex].Text, out double result1);
                     textBoxes[currentIndex].Text = (result1 - 1).ToString();
                     break;

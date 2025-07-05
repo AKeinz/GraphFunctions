@@ -2,9 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -12,50 +10,54 @@ namespace ViewModel
 {
     public class GraphicsViewModel : IViewModel
     {
-        bool messageShown = false;
+        private IExportDataToExcel exportDataToExcel;
         private IFunctionCalculator _calculator;
-        public ICommand DisplayAddFunctionCommand { get; set; }
-        public ICommand IncreaseCommand { get; set; }
-        public ICommand DeacreaseCommand { get; set; }
 
-        public GraphicsViewModel(IFunctionCalculator functionCalculator)
+        bool messageShown = false;
+        public ICommand ExportToExcelCommand { get; set; }
+        public ObservableCollection<DataPoint> PointsFirstBranch { get; } = new ObservableCollection<DataPoint>();
+        public ObservableCollection<DataPoint> PointsSecondBranch { get; } = new ObservableCollection<DataPoint>();
+
+        public GraphicsViewModel(IFunctionCalculator functionCalculator, IExportDataToExcel exportDataToExcel)
         {
-            DisplayAddFunctionCommand = new RelayCommand(displayAddFunction);
-            IncreaseCommand = new RelayCommand(increaseValue);
-            DeacreaseCommand = new RelayCommand(decreaseValue);
+            ExportToExcelCommand = new RelayCommand(exportToExcel);
+
             _calculator = functionCalculator;
+            this.exportDataToExcel = exportDataToExcel;
+
             CurrentGraph.FunctionChanged += UpdateGraphData;
         }
         
 
-        private void displayAddFunction(object par)
+        private void exportToExcel(object par)
         {
-
+            try
+            {
+                if (PointsFirstBranch.Count == 0) { return; }
+                List<DataPoint> points = new List<DataPoint>();
+                points.AddRange(PointsFirstBranch);
+                points.AddRange(PointsSecondBranch);
+                string fileName = exportDataToExcel.ExportDataToExcel(CurrentGraph.SelectedFunction.Equation, points);
+                if (!String.IsNullOrEmpty(fileName)) { Process.Start(new ProcessStartInfo(fileName) { UseShellExecute = true }); }
+                else { MessageNeeded?.Invoke("Не удалось экспортировать"); }
+            }
+            catch (Exception e)
+            {
+                MessageNeeded?.Invoke($"Ошибка: {e.Message}");
+            }
         }
 
-        private void decreaseValue(object par)
-        {
-
-        }
-
-        private void increaseValue(object par)
-        {
-
-        }
-
-        public ObservableCollection<DataPoint> PointsFirstBranch { get; } = new ObservableCollection<DataPoint>();
-        public ObservableCollection<DataPoint> PointsSecondBranch { get; } = new ObservableCollection<DataPoint>();
+        
 
         public void UpdateGraphData()
         {
-            PointsFirstBranch.Clear();
-            PointsSecondBranch.Clear();
+            ClearPoints();
             IFunction func = CurrentGraph.SelectedFunction;
             double step = 0.1;
 
             try
             {
-                List<DataPoint> result = RunWithTimeout(() => CalculatePoints(func, step), 2500000);
+                List<DataPoint> result = RunWithTimeout(() => CalculatePoints(func, step), 2500);
                 if (func.Type.Contains("/x"))
                 {
                     int index = 0;
@@ -84,21 +86,30 @@ namespace ViewModel
             {
                 MessageNeeded?.Invoke("Y превысило допустимое значение");
             }
-
-
+            catch (Exception ex)
+            {
+                MessageNeeded?.Invoke($"Ошибка: {ex.Message}");
+            }
         }
-        
+
+        private void ClearPoints()
+        {
+            PointsFirstBranch.Clear();
+            PointsSecondBranch.Clear();
+        }
+
 
         private List<DataPoint> CalculatePoints(IFunction func, double step)
         {
             List<DataPoint> points = new List<DataPoint>();
             
             for (double x = func.MinLimit; x <= func.MaxLimit; x += step)
-            { 
+            {
+                x = Math.Round(x, 1);
                 double y = 0;
                 try
                 {
-                    y = _calculator.Calculate(func.Equation, x);
+                    y = Math.Round(_calculator.Calculate(func.Equation, x),4);
                     if (double.IsNaN(y) && !messageShown) { 
                         MessageNeeded?.Invoke("Недопустимые значения не отображаются");
                         messageShown = true;

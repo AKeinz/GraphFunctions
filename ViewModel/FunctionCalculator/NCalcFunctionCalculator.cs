@@ -1,11 +1,6 @@
 ﻿using NCalc;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace ViewModel
 {
@@ -13,6 +8,7 @@ namespace ViewModel
     {
         public double Calculate(string equation, double x)
         {
+            x = Math.Round(x, 1);
             equation = equation.Substring(4);
 
             equation = Regex.Replace(equation, @"([x0-9_]+)\^([x0-9_]+)", "Pow($1,$2)");

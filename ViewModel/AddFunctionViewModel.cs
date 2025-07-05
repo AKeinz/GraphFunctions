@@ -1,9 +1,6 @@
 ﻿using Model;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace ViewModel
@@ -58,13 +55,8 @@ namespace ViewModel
         {
             try
             {
-                if (MinLimit >= MaxLimit) { MessageNeeded?.Invoke("Минимальное значение интервала должно быть меньше максимального"); return; }
-                string chosenFunc = par.ToString();
-                List<double> coefs = new List<double>();
-                coefs.Add(ACoef);
-                coefs.Add(BCoef);
-                coefs.Add(CCoef);
-                IFunction newFunction = FunctionFabric.CreateFunction(chosenFunc, coefs, (MinLimit, MaxLimit));
+                ValidateLimits();
+                IFunction newFunction = CreateFunction(par.ToString());
                 CurrentGraph.SelectedFunction = newFunction;
             }
             catch(Exception ex) 
@@ -72,6 +64,18 @@ namespace ViewModel
                 MessageNeeded?.Invoke(ex.Message);
             }
 
+        }
+
+        private void ValidateLimits()
+        {
+            if (MinLimit >= MaxLimit)
+                throw new ArgumentException("Минимальное значение интервала должно быть меньше максимального");
+        }
+
+        private IFunction CreateFunction(string chosenFunc)
+        {
+            var coefs = new List<double> { ACoef, BCoef, CCoef };
+            return FunctionFactory.FunctionFactory.CreateFunction(chosenFunc, coefs, (MinLimit, MaxLimit));
         }
 
 
